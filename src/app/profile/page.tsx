@@ -24,7 +24,7 @@ import { UserProfile, Book, Review } from '@/types';
 import BookCard from '@/components/BookCard';
 
 export default function StudentProfilePage() {
-  const [user, setUser] = useState<UserProfile>(store.getCurrentUser());
+  const [user, setUser] = useState<UserProfile>(store.getActiveUser());
   const [myBooks, setMyBooks] = useState<Book[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [activeTab, setActiveTab] = useState<'listings' | 'reviews' | 'rentals' | 'donations'>('listings');
@@ -39,7 +39,7 @@ export default function StudentProfilePage() {
 
   useEffect(() => {
     const loadData = () => {
-      const current = store.getCurrentUser();
+      const current = store.getActiveUser();
       setUser(current);
       setFullName(current.fullName);
       setInstitution(current.institution);

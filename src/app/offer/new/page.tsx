@@ -24,7 +24,7 @@ function MakeOfferContent() {
   const initialType = (searchParams.get('type') as any) || 'exchange';
 
   const [book, setBook] = useState<Book | undefined>(undefined);
-  const [currentUser, setCurrentUser] = useState<UserProfile>(store.getCurrentUser());
+  const [currentUser, setCurrentUser] = useState<UserProfile>(store.getActiveUser());
   const [myBooks, setMyBooks] = useState<Book[]>([]);
   
   const [offerType, setOfferType] = useState<'sell' | 'exchange' | 'rent' | 'donate'>(initialType);
@@ -40,7 +40,7 @@ function MakeOfferContent() {
       const b = store.getBookById(bookId);
       setBook(b);
     }
-    const user = store.getCurrentUser();
+    const user = store.getActiveUser();
     setCurrentUser(user);
     const userBooks = store.getBooks().filter((b) => b.userId === user.id);
     setMyBooks(userBooks);

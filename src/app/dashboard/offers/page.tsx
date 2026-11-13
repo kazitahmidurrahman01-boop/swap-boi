@@ -8,15 +8,15 @@ import { Offer, UserProfile } from '@/types';
 import { formatBDT } from '@/lib/utils';
 
 export default function MyOffersPage() {
-  const [user, setUser] = useState<UserProfile>(store.getCurrentUser());
+  const [user, setUser] = useState<UserProfile>(store.getActiveUser());
   const [offers, setOffers] = useState<Offer[]>([]);
 
   useEffect(() => {
-    const u = store.getCurrentUser();
+    const u = store.getActiveUser();
     setUser(u);
     setOffers(store.getOffersForUser(u.id));
     const unsubscribe = store.subscribe(() => {
-      setOffers(store.getOffersForUser(store.getCurrentUser().id));
+      setOffers(store.getOffersForUser(store.getActiveUser().id));
     });
     return unsubscribe;
   }, []);

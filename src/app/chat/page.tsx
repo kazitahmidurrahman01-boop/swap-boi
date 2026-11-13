@@ -29,7 +29,7 @@ function ChatContent() {
   const bookIdParam = searchParams.get('bookId');
   const sellerIdParam = searchParams.get('sellerId');
 
-  const [currentUser, setCurrentUser] = useState<UserProfile>(store.getCurrentUser());
+  const [currentUser, setCurrentUser] = useState<UserProfile>(store.getActiveUser());
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConv, setActiveConv] = useState<Conversation | undefined>(undefined);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -38,7 +38,7 @@ function ChatContent() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const user = store.getCurrentUser();
+    const user = store.getActiveUser();
     setCurrentUser(user);
 
     let convs = store.getConversations();

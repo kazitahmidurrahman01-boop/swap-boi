@@ -30,7 +30,7 @@ export default function BookDetailsPage() {
   const bookId = params.id as string;
 
   const [book, setBook] = useState<Book | undefined>(undefined);
-  const [currentUser, setCurrentUser] = useState<UserProfile>(store.getCurrentUser());
+  const [currentUser, setCurrentUser] = useState<UserProfile>(store.getActiveUser());
   const [isWishlisted, setIsWishlisted] = useState<boolean>(false);
   const [reportModalOpen, setReportModalOpen] = useState<boolean>(false);
   const [reportReason, setReportReason] = useState<string>('Duplicate or misleading listing');
@@ -48,7 +48,7 @@ export default function BookDetailsPage() {
       if (updated) {
         setIsWishlisted(store.isInWishlist(updated.id));
       }
-      setCurrentUser(store.getCurrentUser());
+      setCurrentUser(store.getActiveUser());
     });
     return unsubscribe;
   }, [bookId]);

@@ -5,7 +5,7 @@ import { store } from '@/lib/store';
 import { ShieldCheck, Bell, Lock, User, CheckCircle2 } from 'lucide-react';
 
 export default function SettingsPage() {
-  const user = store.getCurrentUser();
+  const user = store.getActiveUser();
   const [saved, setSaved] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [emailAlerts, setEmailAlerts] = useState(true);

@@ -12,7 +12,8 @@ class SwapBoiStore {
   private wishlistBookIds: string[] = ['book-hsc-physics-2', 'book-c-programming', 'book-dsa-karumanchi'];
   private reports: UserReport[] = [];
   private reviews: Review[] = [];
-  private currentUserId: string = 'user-tahmidur';
+  private currentUserId: string | null = 'user-tahmidur';
+  private loggedIn: boolean = true;
   private listeners: Set<() => void> = new Set();
   private initialized: boolean = false;
 
@@ -55,9 +56,14 @@ class SwapBoiStore {
         this.wishlistBookIds = JSON.parse(storedWishlist);
       }
 
+      const storedAuth = localStorage.getItem('swapboi_logged_in');
+      this.loggedIn = storedAuth !== 'false';
+
       const storedUser = localStorage.getItem('swapboi_current_user');
       if (storedUser) {
         this.currentUserId = storedUser;
+      } else {
+        this.currentUserId = 'user-tahmidur';
       }
 
       this.ebooks = [...MOCK_EBOOKS];
@@ -73,6 +79,8 @@ class SwapBoiStore {
       this.ebooks = [...MOCK_EBOOKS];
       this.reports = [...MOCK_REPORTS];
       this.reviews = [...MOCK_REVIEWS];
+      this.loggedIn = true;
+      this.currentUserId = 'user-tahmidur';
       this.initialized = true;
     }
   }
@@ -86,7 +94,12 @@ class SwapBoiStore {
         localStorage.setItem('swapboi_conversations', JSON.stringify(this.conversations));
         localStorage.setItem('swapboi_messages', JSON.stringify(this.messages));
         localStorage.setItem('swapboi_wishlist', JSON.stringify(this.wishlistBookIds));
-        localStorage.setItem('swapboi_current_user', this.currentUserId);
+        localStorage.setItem('swapboi_logged_in', String(this.loggedIn));
+        if (this.currentUserId) {
+          localStorage.setItem('swapboi_current_user', this.currentUserId);
+        } else {
+          localStorage.removeItem('swapboi_current_user');
+        }
       } catch (err) {
         console.error('Storage sync error', err);
       }
@@ -105,14 +118,147 @@ class SwapBoiStore {
     this.listeners.forEach((l) => l());
   }
 
-  // --- USER PROFILE & AUTH ---
-  public getCurrentUser(): UserProfile {
-    return this.users.find((u) => u.id === this.currentUserId) || this.users[0] || MOCK_USERS[0];
+  // --- USER AUTHENTICATION & SESSION MANAGEMENT ---
+  public isLoggedIn(): boolean {
+    return this.loggedIn && this.currentUserId !== null;
+  }
+
+  public getCurrentUser(): UserProfile | null {
+    if (!this.loggedIn || !this.currentUserId) return null;
+    return this.users.find((u) => u.id === this.currentUserId) || null;
+  }
+
+  // Safe fallback for UI parts that need a display profile
+  public getActiveUser(): UserProfile {
+    return this.getCurrentUser() || this.users[0] || MOCK_USERS[0];
+  }
+
+  public getAllUsers(): UserProfile[] {
+    return this.users;
+  }
+
+  public login(email: string, password?: string): { success: boolean; error?: string; user?: UserProfile } {
+    const cleanEmail = email.trim().toLowerCase();
+    const user = this.users.find((u) => u.email.toLowerCase() === cleanEmail);
+
+    if (!user) {
+      return { 
+        success: false, 
+        error: `No student account found with "${email}". Please click Sign Up to register.` 
+      };
+    }
+
+    if (password && user.password && user.password !== password) {
+      return {
+        success: false,
+        error: 'Incorrect password. (Tip: Demo accounts use password "student123" or "admin123")'
+      };
+    }
+
+    this.loggedIn = true;
+    this.currentUserId = user.id;
+    this.persist();
+    return { success: true, user };
+  }
+
+  public loginWithGoogle(email?: string, name?: string): { success: boolean; user: UserProfile } {
+    let targetUser: UserProfile | undefined;
+    
+    if (email) {
+      targetUser = this.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    }
+
+    if (!targetUser) {
+      targetUser = this.users[0] || MOCK_USERS[0];
+    }
+
+    this.loggedIn = true;
+    this.currentUserId = targetUser.id;
+    this.persist();
+    return { success: true, user: targetUser };
+  }
+
+  public register(data: {
+    fullName: string;
+    email: string;
+    password?: string;
+    institution: string;
+    department?: string;
+    academicLevel: any;
+    phone?: string;
+  }): { success: boolean; error?: string; user?: UserProfile } {
+    const cleanEmail = data.email.trim().toLowerCase();
+    const exists = this.users.find((u) => u.email.toLowerCase() === cleanEmail);
+    
+    if (exists) {
+      return { 
+        success: false, 
+        error: `An account already exists with "${data.email}". Please log in instead.` 
+      };
+    }
+
+    const initials = data.fullName
+      .trim()
+      .split(' ')
+      .map((n) => n[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join('')
+      .toUpperCase() || 'SB';
+
+    const bgColors = [
+      'bg-emerald-600',
+      'bg-teal-700',
+      'bg-green-700',
+      'bg-forest',
+      'bg-forest-dark',
+      'bg-emerald-800'
+    ];
+    const avatarBg = bgColors[Math.floor(Math.random() * bgColors.length)];
+
+    const newUser: UserProfile = {
+      id: `user-${Date.now()}`,
+      fullName: data.fullName.trim(),
+      email: cleanEmail,
+      password: data.password || 'student123',
+      phone: data.phone || '+880 1700-000000',
+      avatarInitials: initials,
+      avatarBg: avatarBg,
+      role: 'student',
+      institution: data.institution,
+      institutionType: 'university',
+      department: data.department || 'General Studies',
+      academicLevel: data.academicLevel || 'university_undergrad',
+      studentIdNumber: `STU-${Math.floor(100000 + Math.random() * 900000)}`,
+      isVerified: true,
+      bio: `Student at ${data.institution}. Eager to buy, sell, and swap textbooks on Swap Boi.`,
+      locationCity: 'Dhaka',
+      locationArea: 'Campus Hub',
+      coordinates: { lat: 23.8223, lng: 90.4274 },
+      ratingScore: 5.0,
+      ratingCount: 1,
+      dealsCompleted: 0,
+      booksListed: 0,
+      joinedDate: 'Nov 2026',
+    };
+
+    this.users.unshift(newUser);
+    this.loggedIn = true;
+    this.currentUserId = newUser.id;
+    this.persist();
+    return { success: true, user: newUser };
+  }
+
+  public logout(): void {
+    this.loggedIn = false;
+    this.currentUserId = null;
+    this.persist();
   }
 
   public setCurrentUser(userId: string) {
     const user = this.users.find((u) => u.id === userId);
     if (user) {
+      this.loggedIn = true;
       this.currentUserId = userId;
       this.persist();
     }
@@ -123,7 +269,7 @@ class SwapBoiStore {
   }
 
   public updateUserProfile(updated: Partial<UserProfile>) {
-    const currentUser = this.getCurrentUser();
+    const currentUser = this.getActiveUser();
     this.users = this.users.map((u) => (u.id === currentUser.id ? { ...u, ...updated } : u));
     this.persist();
   }
@@ -143,7 +289,7 @@ class SwapBoiStore {
   }
 
   public addBook(bookData: Omit<Book, 'id' | 'createdAt' | 'viewsCount' | 'wishlistCount' | 'user' | 'userId'>): Book {
-    const currentUser = this.getCurrentUser();
+    const currentUser = this.getActiveUser();
     const newBook: Book = {
       ...bookData,
       id: `book-${Date.now()}`,
@@ -213,7 +359,7 @@ class SwapBoiStore {
   }): Offer {
     const targetBook = this.getBookById(payload.bookId);
     if (!targetBook) throw new Error('Book not found');
-    const sender = this.getCurrentUser();
+    const sender = this.getActiveUser();
     const receiver = targetBook.user;
 
     const offeredBook = payload.offeredBookId ? this.getBookById(payload.offeredBookId) : undefined;
@@ -312,7 +458,7 @@ class SwapBoiStore {
 
   // --- CHAT & CONVERSATIONS ---
   public getConversations(): Conversation[] {
-    const user = this.getCurrentUser();
+    const user = this.getActiveUser();
     return this.conversations.map((c) => {
       const other = c.participants.find((p) => p.id !== user.id) || c.participants[0];
       return {
@@ -325,7 +471,7 @@ class SwapBoiStore {
   public getConversationById(id: string): Conversation | undefined {
     const conv = this.conversations.find((c) => c.id === id);
     if (!conv) return undefined;
-    const user = this.getCurrentUser();
+    const user = this.getActiveUser();
     const other = conv.participants.find((p) => p.id !== user.id) || conv.participants[0];
     return {
       ...conv,
@@ -338,7 +484,7 @@ class SwapBoiStore {
   }
 
   public sendMessage(conversationId: string, content: string, imageUrl?: string): ChatMessage {
-    const user = this.getCurrentUser();
+    const user = this.getActiveUser();
     const msg: ChatMessage = {
       id: `msg-${Date.now()}`,
       conversationId,

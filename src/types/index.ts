@@ -26,6 +26,7 @@ export interface UserProfile {
   id: string;
   fullName: string;
   email: string;
+  password?: string;
   phone?: string;
   avatarInitials: string;
   avatarBg: string; // Tailwind gradient/color class

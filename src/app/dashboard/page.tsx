@@ -24,7 +24,7 @@ import { formatBDT } from '@/lib/utils';
 import BookCard from '@/components/BookCard';
 
 export default function StudentDashboardPage() {
-  const [user, setUser] = useState<UserProfile>(store.getCurrentUser());
+  const [user, setUser] = useState<UserProfile | null>(store.getCurrentUser());
   const [myBooks, setMyBooks] = useState<Book[]>([]);
   const [myOffers, setMyOffers] = useState<Offer[]>([]);
   const [wishlistCount, setWishlistCount] = useState(0);
@@ -33,9 +33,14 @@ export default function StudentDashboardPage() {
     const refresh = () => {
       const u = store.getCurrentUser();
       setUser(u);
-      const allBooks = store.getBooks();
-      setMyBooks(allBooks.filter((b) => b.userId === u.id));
-      setMyOffers(store.getOffersForUser(u.id));
+      if (u) {
+        const allBooks = store.getBooks();
+        setMyBooks(allBooks.filter((b) => b.userId === u.id));
+        setMyOffers(store.getOffersForUser(u.id));
+      } else {
+        setMyBooks([]);
+        setMyOffers([]);
+      }
       setWishlistCount(store.getWishlist().length);
     };
     refresh();
@@ -48,6 +53,36 @@ export default function StudentDashboardPage() {
       store.deleteBook(id);
     }
   };
+
+  if (!user) {
+    return (
+      <div className="max-w-xl mx-auto px-4 py-16 text-center space-y-5">
+        <div className="w-16 h-16 rounded-3xl bg-mint text-forest flex items-center justify-center mx-auto shadow-card">
+          <BookOpen className="w-8 h-8 text-forest" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-extrabold text-charcoal">Student Login Required</h2>
+          <p className="text-xs text-charcoal-muted max-w-md mx-auto">
+            Please log in with your university or student account to view your active books, outgoing offers, and deal history.
+          </p>
+        </div>
+        <div className="flex items-center justify-center gap-3 pt-2">
+          <Link
+            href="/login?redirect=/dashboard"
+            className="px-6 py-2.5 rounded-xl bg-forest hover:bg-forest-light text-white text-xs font-bold transition shadow-sm"
+          >
+            Log In Now
+          </Link>
+          <Link
+            href="/register"
+            className="px-6 py-2.5 rounded-xl border border-surface-border hover:bg-surface text-charcoal text-xs font-semibold transition"
+          >
+            Create Account
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">

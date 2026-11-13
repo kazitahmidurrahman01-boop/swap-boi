@@ -3,7 +3,17 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { BookOpen, ShieldCheck, Check, ArrowRight } from 'lucide-react';
+import { 
+  BookOpen, 
+  ShieldCheck, 
+  Check, 
+  ArrowRight, 
+  AlertCircle, 
+  Eye, 
+  EyeOff, 
+  Upload, 
+  CheckCircle2 
+} from 'lucide-react';
 import { store } from '@/lib/store';
 
 export default function RegisterPage() {
@@ -11,46 +21,67 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [institution, setInstitution] = useState('American International University-Bangladesh (AIUB)');
+  const [department, setDepartment] = useState('Computer Science & Engineering');
   const [academicLevel, setAcademicLevel] = useState('university_undergrad');
+  const [studentIdFile, setStudentIdFile] = useState<string | null>(null);
   const [agreed, setAgreed] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [success, setSuccess] = useState(false);
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage('');
+
+    if (password !== confirmPassword) {
+      setErrorMessage('Passwords do not match. Please verify.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setErrorMessage('Password must be at least 6 characters long.');
+      return;
+    }
+
     setLoading(true);
 
     setTimeout(() => {
-      // Mock registration or store update
-      const initials = fullName
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .slice(0, 2)
-        .toUpperCase() || 'ST';
-
-      store.updateUserProfile({
-        fullName: fullName || 'New Student',
-        email: email || 'student@aiub.edu',
+      const res = store.register({
+        fullName,
+        email,
+        password,
         institution,
-        avatarInitials: initials,
+        department,
+        academicLevel,
       });
 
       setLoading(false);
-      setSuccess(true);
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 1000);
-    }, 800);
+      if (res.success) {
+        setSuccess(true);
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 1000);
+      } else {
+        setErrorMessage(res.error || 'Registration failed');
+      }
+    }, 600);
   };
 
   const handleGoogleAuth = () => {
     setLoading(true);
     setTimeout(() => {
-      store.setCurrentUser('user-tahmidur');
+      store.loginWithGoogle();
       router.push('/dashboard');
-    }, 600);
+    }, 500);
+  };
+
+  const handleFileAttach = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setStudentIdFile(e.target.files[0].name);
+    }
   };
 
   return (
@@ -78,7 +109,7 @@ export default function RegisterPage() {
             <div className="relative z-10 w-36 h-28 bg-white/15 backdrop-blur-md rounded-2xl border border-white/20 p-4 flex flex-col justify-between shadow-2xl transform -rotate-3">
               <BookOpen className="w-8 h-8 text-fresh-light" />
               <div>
-                <p className="text-[11px] font-bold text-white uppercase tracking-wider">AIUB & Campus Hub</p>
+                <p className="text-[11px] font-bold text-white uppercase tracking-wider">Campus Textbook Hub</p>
                 <p className="text-[10px] text-mint-border">Zero Commission • Student Safe</p>
               </div>
             </div>
@@ -94,16 +125,32 @@ export default function RegisterPage() {
         {/* Right Form Panel matching Screen 4 */}
         <div className="md:col-span-7 p-8 sm:p-10 flex flex-col justify-center">
           
-          <div className="mb-6">
-            <h3 className="text-2xl font-extrabold text-charcoal tracking-tight">Create Account</h3>
+          <div className="mb-5">
+            <h3 className="text-2xl font-extrabold text-charcoal tracking-tight">Create Student Account</h3>
             <p className="text-xs text-charcoal-muted mt-1">Get started in seconds with your university or college email</p>
           </div>
+
+          {/* Error Message Alert */}
+          {errorMessage && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-start gap-2 animate-shake">
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
+          {/* Success Banner */}
+          {success && (
+            <div className="mb-4 p-3.5 bg-mint border border-mint-border rounded-xl text-xs text-forest font-semibold flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-fresh shrink-0" />
+              <span>Account created successfully! Redirecting to student dashboard...</span>
+            </div>
+          )}
 
           {/* Google Auth Button */}
           <button
             type="button"
             onClick={handleGoogleAuth}
-            className="w-full py-3 px-4 rounded-xl border border-surface-border hover:bg-surface text-charcoal font-semibold text-xs flex items-center justify-center gap-3 transition shadow-2xs"
+            className="w-full py-2.5 px-4 rounded-xl border border-surface-border hover:bg-surface text-charcoal font-semibold text-xs flex items-center justify-center gap-3 transition shadow-2xs"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -114,65 +161,66 @@ export default function RegisterPage() {
             <span>Continue with Google</span>
           </button>
 
-          <div className="flex items-center gap-3 my-5">
+          <div className="flex items-center gap-3 my-4">
             <div className="h-px bg-surface-border flex-1" />
-            <span className="text-[11px] text-charcoal-light font-medium uppercase">or</span>
+            <span className="text-[10px] text-charcoal-light font-bold uppercase tracking-wider">or register with email</span>
             <div className="h-px bg-surface-border flex-1" />
           </div>
 
-          <form onSubmit={handleRegister} className="space-y-4">
+          <form onSubmit={handleRegister} className="space-y-3">
             <div>
-              <label className="block text-xs font-semibold text-charcoal mb-1">Full Name</label>
+              <label className="block text-xs font-semibold text-charcoal mb-1">Full Name *</label>
               <input
                 type="text"
                 required
                 placeholder="e.g. Kazi Tahmidur Rahman"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-surface-border text-sm focus:outline-hidden focus:border-fresh text-charcoal"
+                className="w-full px-3.5 py-2 rounded-xl border border-surface-border text-xs focus:outline-hidden focus:border-fresh text-charcoal"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-charcoal mb-1">Email Address</label>
+              <label className="block text-xs font-semibold text-charcoal mb-1">Student Email Address *</label>
               <input
                 type="email"
                 required
                 placeholder="student@aiub.edu or yourname@gmail.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-surface-border text-sm focus:outline-hidden focus:border-fresh text-charcoal"
+                className="w-full px-3.5 py-2 rounded-xl border border-surface-border text-xs focus:outline-hidden focus:border-fresh text-charcoal"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-charcoal mb-1">Institution</label>
+                <label className="block text-xs font-semibold text-charcoal mb-1">Institution *</label>
                 <select
                   value={institution}
                   onChange={(e) => setInstitution(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-surface-border text-xs focus:outline-hidden bg-white text-charcoal"
+                  className="w-full px-3 py-2 rounded-xl border border-surface-border text-xs focus:outline-hidden bg-white text-charcoal"
                 >
-                  <option value="AIUB">AIUB</option>
-                  <option value="Dhaka University (DU)">Dhaka University (DU)</option>
-                  <option value="BUET">BUET</option>
+                  <option value="American International University-Bangladesh (AIUB)">AIUB</option>
+                  <option value="University of Dhaka (DU)">Dhaka University (DU)</option>
+                  <option value="Bangladesh University of Engineering and Technology (BUET)">BUET</option>
                   <option value="North South University (NSU)">North South University (NSU)</option>
                   <option value="BRAC University">BRAC University</option>
                   <option value="Notre Dame College">Notre Dame College</option>
                   <option value="Dhaka College">Dhaka College</option>
-                  <option value="Viqarunnisa Noon">Viqarunnisa Noon</option>
-                  <option value="Other School/College">Other Institution</option>
+                  <option value="Viqarunnisa Noon College">Viqarunnisa Noon</option>
+                  <option value="Other School or College">Other Institution</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-charcoal mb-1">Academic Level</label>
+                <label className="block text-xs font-semibold text-charcoal mb-1">Academic Level *</label>
                 <select
                   value={academicLevel}
                   onChange={(e) => setAcademicLevel(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-surface-border text-xs focus:outline-hidden bg-white text-charcoal"
+                  className="w-full px-3 py-2 rounded-xl border border-surface-border text-xs focus:outline-hidden bg-white text-charcoal"
                 >
                   <option value="university_undergrad">University Undergrad</option>
+                  <option value="university_postgrad">University Postgrad</option>
                   <option value="hsc">HSC (Class 11-12)</option>
                   <option value="ssc">SSC (Class 9-10)</option>
                   <option value="o_levels">O / A Levels</option>
@@ -180,16 +228,56 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-charcoal mb-1">Password *</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    placeholder="Min 6 characters"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-3.5 py-2 pr-9 rounded-xl border border-surface-border text-xs focus:outline-hidden focus:border-fresh text-charcoal"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-charcoal-light"
+                  >
+                    {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-charcoal mb-1">Confirm Password *</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Re-enter password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl border border-surface-border text-xs focus:outline-hidden focus:border-fresh text-charcoal"
+                />
+              </div>
+            </div>
+
+            {/* Student ID Card Document Upload (Screen 4 verification feature) */}
             <div>
-              <label className="block text-xs font-semibold text-charcoal mb-1">Password</label>
-              <input
-                type="password"
-                required
-                placeholder="Create secure password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-surface-border text-sm focus:outline-hidden focus:border-fresh text-charcoal"
-              />
+              <label className="block text-xs font-semibold text-charcoal mb-1">
+                Student ID Card for Instant Verification (Optional)
+              </label>
+              <label className="flex items-center justify-between p-2 rounded-xl border border-dashed border-surface-border hover:border-fresh cursor-pointer bg-surface/50 text-xs text-charcoal-muted">
+                <span className="flex items-center gap-2 truncate">
+                  <Upload className="w-4 h-4 text-forest shrink-0" />
+                  <span className="truncate">{studentIdFile ? `Attached: ${studentIdFile}` : 'Upload photo of your Student ID card'}</span>
+                </span>
+                <span className="text-[10px] bg-white border border-surface-border px-2 py-0.5 rounded font-semibold text-charcoal shrink-0">
+                  Browse
+                </span>
+                <input type="file" accept="image/*,.pdf" onChange={handleFileAttach} className="hidden" />
+              </label>
             </div>
 
             <label className="flex items-start gap-2 cursor-pointer pt-1">
@@ -207,13 +295,13 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading || !agreed}
-              className="w-full py-3 rounded-xl bg-forest hover:bg-forest-light disabled:opacity-50 text-white font-bold text-sm shadow-card transition"
+              className="w-full py-2.5 rounded-xl bg-forest hover:bg-forest-light disabled:opacity-50 text-white font-bold text-xs shadow-card transition flex items-center justify-center gap-2"
             >
-              {loading ? 'Creating Account...' : success ? 'Account Created! Redirecting...' : 'Sign Up'}
+              {loading ? 'Creating Student Account...' : 'Sign Up'}
             </button>
           </form>
 
-          <p className="text-center text-xs text-charcoal-muted mt-5">
+          <p className="text-center text-xs text-charcoal-muted mt-4">
             Already have an account?{' '}
             <Link href="/login" className="text-forest font-bold hover:underline">
               Log In
