@@ -17,7 +17,12 @@ import {
   Calendar, 
   BookOpen, 
   Check, 
-  AlertCircle 
+  AlertCircle,
+  Camera,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
+  X
 } from 'lucide-react';
 import { store } from '@/lib/store';
 import { Book, UserProfile } from '@/types';
@@ -35,6 +40,8 @@ export default function BookDetailsPage() {
   const [reportModalOpen, setReportModalOpen] = useState<boolean>(false);
   const [reportReason, setReportReason] = useState<string>('Duplicate or misleading listing');
   const [reportSuccess, setReportSuccess] = useState<boolean>(false);
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number>(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const b = store.getBookById(bookId);
@@ -119,56 +126,141 @@ export default function BookDetailsPage() {
         
         {/* Left Column: Cover Presentation & Thumbnails */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="relative aspect-3/4 rounded-2xl overflow-hidden shadow-elevated border border-surface-border">
-            {/* Rich gradient book visual representation */}
-            <div className={`w-full h-full bg-linear-to-b ${book.coverColor} p-8 flex flex-col justify-between text-white`}>
-              <div className="flex items-center justify-between">
-                <span className="text-xs uppercase font-extrabold tracking-widest bg-black/40 px-3 py-1 rounded-lg backdrop-blur-xs">
-                  {book.subject}
-                </span>
-                <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded font-mono">
-                  {book.academicLevel.toUpperCase()}
-                </span>
-              </div>
+          {((book.photos && book.photos.length > 0) || book.coverImage) ? (
+            <>
+              {/* Photo Display Card */}
+              <div className="relative aspect-3/4 rounded-2xl overflow-hidden shadow-elevated border border-surface-border bg-surface group">
+                <img 
+                  src={(book.photos && book.photos[selectedPhotoIndex]) || book.coverImage} 
+                  alt={book.title} 
+                  className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
+                />
 
-              <div className="text-center my-auto px-4">
-                <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md mx-auto mb-4 flex items-center justify-center">
-                  <BookOpen className="w-8 h-8 text-white" />
+                {/* Top Overlay Badge */}
+                <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+                  <span className="text-[11px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-lg bg-black/70 text-white backdrop-blur-xs flex items-center gap-1.5 shadow-xs">
+                    <Camera className="w-3.5 h-3.5 text-mint" />
+                    <span>
+                      {selectedPhotoIndex === 0 ? 'Front Cover' : selectedPhotoIndex === 1 ? 'Back Cover' : `Inside Page ${selectedPhotoIndex - 1}`}
+                    </span>
+                  </span>
+                  {book.photos && book.photos.length > 1 && (
+                    <span className="text-[10px] font-mono font-bold px-2 py-1 rounded-lg bg-black/70 text-white backdrop-blur-xs shadow-xs">
+                      {selectedPhotoIndex + 1} / {book.photos.length}
+                    </span>
+                  )}
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight drop-shadow-md leading-tight">
-                  {book.title}
-                </h2>
-                <p className="text-sm text-white/90 font-medium mt-2">
-                  {book.author}
-                </p>
-                {book.edition && (
-                  <p className="text-xs text-white/75 mt-1 font-mono">
-                    {book.edition}
-                  </p>
+
+                {/* Prev / Next buttons if multiple photos */}
+                {book.photos && book.photos.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPhotoIndex((prev) => (prev > 0 ? prev - 1 : (book.photos?.length || 1) - 1))}
+                      className="absolute left-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center backdrop-blur-xs transition shadow-md"
+                      title="Previous photo"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPhotoIndex((prev) => (prev < (book.photos?.length || 1) - 1 ? prev + 1 : 0))}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center backdrop-blur-xs transition shadow-md"
+                      title="Next photo"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </>
                 )}
+
+                {/* Full View Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsLightboxOpen(true)}
+                  className="absolute bottom-3 right-3 px-2.5 py-1 rounded-lg bg-black/70 hover:bg-black/90 text-white text-[11px] font-medium backdrop-blur-xs flex items-center gap-1.5 transition shadow-xs"
+                >
+                  <Maximize2 className="w-3.5 h-3.5" />
+                  <span>Inspect Photo</span>
+                </button>
               </div>
 
-              <div className="flex items-center justify-between text-xs text-white/90 border-t border-white/20 pt-3">
-                <span>{book.publisher || 'NCTB / Academic'}</span>
-                <span>Swap Boi Verified</span>
-              </div>
-            </div>
-          </div>
+              {/* Multiple Photos Thumbnails Strip */}
+              {book.photos && book.photos.length > 1 && (
+                <div className="grid grid-cols-4 gap-2">
+                  {book.photos.map((photoUrl, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setSelectedPhotoIndex(idx)}
+                      className={`relative aspect-3/4 rounded-xl border-2 overflow-hidden transition ${
+                        selectedPhotoIndex === idx 
+                          ? 'border-forest ring-2 ring-forest/30 scale-102 shadow-xs' 
+                          : 'border-surface-border opacity-70 hover:opacity-100 hover:border-mint-border'
+                      }`}
+                    >
+                      <img src={photoUrl} alt="" className="w-full h-full object-cover" />
+                      <span className="absolute bottom-0 inset-x-0 bg-black/70 text-white text-[9px] font-medium py-0.5 text-center">
+                        {idx === 0 ? 'Cover' : idx === 1 ? 'Back' : `Page ${idx - 1}`}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {/* Rich gradient book visual representation fallback */}
+              <div className="relative aspect-3/4 rounded-2xl overflow-hidden shadow-elevated border border-surface-border">
+                <div className={`w-full h-full bg-linear-to-b ${book.coverColor} p-8 flex flex-col justify-between text-white`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs uppercase font-extrabold tracking-widest bg-black/40 px-3 py-1 rounded-lg backdrop-blur-xs">
+                      {book.subject}
+                    </span>
+                    <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded font-mono">
+                      {book.academicLevel.toUpperCase()}
+                    </span>
+                  </div>
 
-          {/* Multiple Cover Angles Thumbnails */}
-          <div className="grid grid-cols-3 gap-2">
-            {[1, 2, 3].map((idx) => (
-              <div 
-                key={idx} 
-                className={`aspect-3/4 rounded-xl border-2 cursor-pointer overflow-hidden p-2 flex flex-col items-center justify-center text-center ${
-                  idx === 1 ? 'border-forest bg-mint/50' : 'border-surface-border bg-surface'
-                }`}
-              >
-                <BookOpen className="w-4 h-4 text-forest mb-1" />
-                <span className="text-[10px] font-semibold text-charcoal-muted">View {idx}</span>
+                  <div className="text-center my-auto px-4">
+                    <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md mx-auto mb-4 flex items-center justify-center">
+                      <BookOpen className="w-8 h-8 text-white" />
+                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight drop-shadow-md leading-tight">
+                      {book.title}
+                    </h2>
+                    <p className="text-sm text-white/90 font-medium mt-2">
+                      {book.author}
+                    </p>
+                    {book.edition && (
+                      <p className="text-xs text-white/75 mt-1 font-mono">
+                        {book.edition}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-white/90 border-t border-white/20 pt-3">
+                    <span>{book.publisher || 'NCTB / Academic'}</span>
+                    <span>Swap Boi Verified</span>
+                  </div>
+                </div>
               </div>
-            ))}
-          </div>
+
+              {/* Multiple Cover Angles Thumbnails */}
+              <div className="grid grid-cols-3 gap-2">
+                {[1, 2, 3].map((idx) => (
+                  <div 
+                    key={idx} 
+                    className={`aspect-3/4 rounded-xl border-2 cursor-pointer overflow-hidden p-2 flex flex-col items-center justify-center text-center ${
+                      idx === 1 ? 'border-forest bg-mint/50' : 'border-surface-border bg-surface'
+                    }`}
+                  >
+                    <BookOpen className="w-4 h-4 text-forest mb-1" />
+                    <span className="text-[10px] font-semibold text-charcoal-muted">View {idx}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Right Column: Book Info, Pricing, Seller Box, and Actions */}
@@ -418,6 +510,53 @@ export default function BookDetailsPage() {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Photo Lightbox Modal */}
+      {isLightboxOpen && ((book.photos && book.photos.length > 0) || book.coverImage) && (
+        <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-4">
+          <button
+            onClick={() => setIsLightboxOpen(false)}
+            className="absolute top-4 right-4 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer z-10"
+            title="Close"
+          >
+            <X className="w-6 h-6" />
+          </button>
+
+          <div className="relative max-w-4xl max-h-[82vh] flex items-center justify-center">
+            <img 
+              src={(book.photos && book.photos[selectedPhotoIndex]) || book.coverImage} 
+              alt={book.title} 
+              className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl" 
+            />
+
+            {book.photos && book.photos.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setSelectedPhotoIndex((prev) => (prev > 0 ? prev - 1 : (book.photos?.length || 1) - 1))}
+                  className="absolute -left-4 sm:-left-12 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedPhotoIndex((prev) => (prev < (book.photos?.length || 1) - 1 ? prev + 1 : 0))}
+                  className="absolute -right-4 sm:-right-12 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+              </>
+            )}
+          </div>
+
+          <div className="flex items-center gap-4 mt-4 text-white text-xs font-semibold">
+            <span>
+              {selectedPhotoIndex === 0 ? 'Front Cover' : selectedPhotoIndex === 1 ? 'Back Cover' : `Inside Page ${selectedPhotoIndex - 1}`}
+              {book.photos && book.photos.length > 1 && ` • (${selectedPhotoIndex + 1} of ${book.photos.length})`}
+            </span>
           </div>
         </div>
       )}

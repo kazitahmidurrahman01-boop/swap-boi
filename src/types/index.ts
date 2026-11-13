@@ -77,6 +77,7 @@ export interface Book {
   
   coverColor: string; // Decorative cover gradient
   coverImage?: string; // Book artwork or illustration
+  photos?: string[]; // Multiple actual photos of the book (front, back, pages)
   locationCity: string;
   locationArea: string;
   coordinates: {

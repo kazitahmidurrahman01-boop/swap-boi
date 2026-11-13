@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Heart, MapPin, BookOpen, ShieldCheck } from 'lucide-react';
+import { Heart, MapPin, BookOpen, ShieldCheck, Camera } from 'lucide-react';
 import { Book } from '@/types';
 import { store } from '@/lib/store';
 import { formatBDT, formatDistance, getConditionBadge, getListingTypeBadge } from '@/lib/utils';
@@ -30,38 +30,69 @@ export default function BookCard({ book, onWishlistChange }: BookCardProps) {
     <div className="group bg-white rounded-2xl border border-surface-border p-3 shadow-soft hover:shadow-card hover:border-mint-border transition-all duration-300 flex flex-col justify-between relative">
       
       {/* Top Cover Display */}
-      <Link href={`/book/${book.id}`} className="block relative aspect-3/4 rounded-xl overflow-hidden mb-3">
-        {/* Book Cover Gradient & Mock Art */}
-        <div className={`w-full h-full bg-linear-to-b ${book.coverColor} p-4 flex flex-col justify-between text-white shadow-inner group-hover:scale-102 transition-transform duration-300`}>
-          
-          {/* Top Badges */}
-          <div className="flex items-start justify-between">
-            <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-md bg-black/40 backdrop-blur-xs">
-              {book.subject}
-            </span>
-          </div>
+      <Link href={`/book/${book.id}`} className="block relative aspect-3/4 rounded-xl overflow-hidden mb-3 bg-surface">
+        {book.coverImage ? (
+          <>
+            <img 
+              src={book.coverImage} 
+              alt={book.title} 
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+            {/* Dark gradient overlay for badge visibility */}
+            <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-black/40 p-4 flex flex-col justify-between text-white pointer-events-none">
+              <div className="flex items-start justify-between">
+                <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-xs">
+                  {book.subject}
+                </span>
+                {book.photos && book.photos.length > 1 && (
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-black/60 backdrop-blur-xs flex items-center gap-1">
+                    <Camera className="w-2.5 h-2.5" />
+                    {book.photos.length}
+                  </span>
+                )}
+              </div>
 
-          {/* Center Book Art / Title */}
-          <div className="my-auto text-center px-1">
-            <div className="w-9 h-9 mx-auto mb-2 rounded-lg bg-white/20 backdrop-blur-xs flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-white" />
+              <div className="flex items-center justify-between text-[10px] text-white/95">
+                <span className="capitalize font-medium">{book.academicLevel.replace('_', ' ')}</span>
+                <span className="bg-black/60 px-1.5 py-0.5 rounded text-[9px] font-mono backdrop-blur-xs">
+                  {cond.label}
+                </span>
+              </div>
             </div>
-            <h4 className="font-extrabold text-sm sm:text-base leading-tight tracking-tight drop-shadow-sm line-clamp-2">
-              {book.title}
-            </h4>
-            <p className="text-[11px] text-white/80 mt-1 truncate">
-              {book.author}
-            </p>
-          </div>
+          </>
+        ) : (
+          /* Book Cover Gradient & Mock Art Fallback */
+          <div className={`w-full h-full bg-linear-to-b ${book.coverColor} p-4 flex flex-col justify-between text-white shadow-inner group-hover:scale-102 transition-transform duration-300`}>
+            
+            {/* Top Badges */}
+            <div className="flex items-start justify-between">
+              <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-md bg-black/40 backdrop-blur-xs">
+                {book.subject}
+              </span>
+            </div>
 
-          {/* Bottom Academic Level Badge */}
-          <div className="flex items-center justify-between text-[10px] text-white/90">
-            <span className="capitalize">{book.academicLevel.replace('_', ' ')}</span>
-            <span className="bg-white/20 px-1.5 py-0.5 rounded text-[9px] font-mono">
-              {cond.label}
-            </span>
+            {/* Center Book Art / Title */}
+            <div className="my-auto text-center px-1">
+              <div className="w-9 h-9 mx-auto mb-2 rounded-lg bg-white/20 backdrop-blur-xs flex items-center justify-center">
+                <BookOpen className="w-5 h-5 text-white" />
+              </div>
+              <h4 className="font-extrabold text-sm sm:text-base leading-tight tracking-tight drop-shadow-sm line-clamp-2">
+                {book.title}
+              </h4>
+              <p className="text-[11px] text-white/80 mt-1 truncate">
+                {book.author}
+              </p>
+            </div>
+
+            {/* Bottom Academic Level Badge */}
+            <div className="flex items-center justify-between text-[10px] text-white/90">
+              <span className="capitalize">{book.academicLevel.replace('_', ' ')}</span>
+              <span className="bg-white/20 px-1.5 py-0.5 rounded text-[9px] font-mono">
+                {cond.label}
+              </span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Wishlist Button in Top-Right */}
         <button
